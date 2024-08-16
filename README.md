@@ -21,15 +21,16 @@ This Python script processes and summarizes komoditas (commodity) data from Exce
 1. Clone this repository or download the `sum_komoditas.py` file.
 2. Install the required packages:
 
-```
+```bash
 pip install pandas openpyxl
 ```
 
 ## Usage
 
 1. Place your Excel files in a directory structure like this:
-   ```
-   /path/to/base/directory/
+
+   ```ascii
+   /path/to/base/directory/data
    └── komoditas_name/
        ├── data_4_54_file1.xlsx
        ├── 4_54_file2.xlsx
@@ -39,16 +40,29 @@ pip install pandas openpyxl
    Note: Ensure your Excel files include the table prefix (e.g., '4_54') in their filenames.
 
 2. Run the script:
-   ```
+
+   ```bash
    python sum_komoditas.py
    ```
 
 3. Follow the prompts to enter:
+
    - Name of the komoditas (e.g., jeruk)
    - Kabupaten code (e.g., 1404)
    - Table number prefix (e.g., 4_54)
 
-4. The script will process the files that match the specified table prefix and generate an output Excel file named `summary_komoditas_{komoditas}_{kabupaten}.xlsx` in the same directory as the script.
+4. The script will process the files that match the specified table prefix and generate an output Excel file named `summary_komoditas_{komoditas}_{kabupaten}.xlsx` in the `output` directory.
+
+## Directory Structure
+
+```ascii
+/SUMKomoditas/
+├── check_na.py
+├── data/
+│   ├── [input Excel files]
+└── output/
+    └── [processed Excel files]
+```
 
 ## Customization
 
@@ -58,6 +72,7 @@ pip install pandas openpyxl
 ## File Naming Convention
 
 To ensure proper processing, your Excel files should include the table prefix in their names. For example:
+
 - `data_4_54_2023.xlsx`
 - `4_54_komoditas_report.xlsx`
 
@@ -76,7 +91,7 @@ Feel free to fork this repository and submit pull requests with any improvements
 ## Author
 
 - **Fajrian Aidil Pratama**
-- Email: fajrianaidilp@gmail.com
+- Email: <fajrianaidilp@gmail.com>
 
 ## License
 
