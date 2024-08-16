@@ -11,8 +11,26 @@ for a specific kabupaten (district) in Indonesia.
 @description: Processes Excel files containing komoditas data and generates summary reports
 """
 import pandas as pd
+from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
 import glob
 import os
+import ast
+
+def clean_kec_name(kec_value):
+    try:
+        # Try to evaluate the string as a literal
+        eval_value = ast.literal_eval(kec_value)
+        if isinstance(eval_value, list):
+            # If it's a list, return the first element
+            return eval_value[0]
+        else:
+            # If it's not a list, return as is
+            return kec_value
+    except:
+        # If evaluation fails, return the original string
+        return kec_value
+
 
 def get_input_with_default(prompt: str, default: any, input_type: type = str) -> any:
     """
@@ -70,6 +88,8 @@ def process_files(directory, kab_code, table_prefix):
             
             # Sum columns for each kecamatan in this file
             summed_kec = district_data_kec.groupby('kec')[columns_to_sum].sum().reset_index()
+            name_kec = district_data_kec.groupby('kec')['id_kec'].unique().reset_index()
+            name_kec['id_kec'] = name_kec['id_kec'].astype(str).apply(clean_kec_name)
             summed_kec['file'] = os.path.basename(file)
             
             result_kec = pd.concat([result_kec, summed_kec], ignore_index=True)
@@ -104,13 +124,7 @@ def process_files(directory, kab_code, table_prefix):
         # Sum the data for each kecamatan across all files
         result_kec = result_kec.groupby('kec')[columns_to_sum].sum().reset_index()
         
-        # Add id columns
-        for col in ['id_prov', 'id_kab', 'id_kec']:
-            if col in result_kec.columns:
-                new_col = col.replace('id_', '')
-                result_kec[new_col] = result_kec[col].astype(str)
-            else:
-                print(f"Column {col} not found in the kecamatan data.")
+        result_kec['kec'] = result_kec['kec'].map(name_kec.set_index('kec')['id_kec']).fillna(result_kec['kec'])
         
         # Calculate SUM for each kecamatan
         result_kec['SUM'] = result_kec[columns_to_sum].sum(axis=1)
@@ -126,10 +140,13 @@ if __name__ == "__main__":
 
     # Set base directory
     # Change this to your specific directory path
-    base_directory = ***REMOVED***
+    base_directory = '/SUMKomoditas/'
 
     # Construct the full directory path
-    directory = os.path.join(base_directory, komoditas)
+    input_directory = os.path.join(base_directory, 'data')
+    output_directory = os.path.join(base_directory, 'output')
+    directory = os.path.join(input_directory, komoditas)
+    
 
     # Process the files
     summary_kab, result_kec = process_files(directory, kab_code, table_prefix)
@@ -143,7 +160,8 @@ if __name__ == "__main__":
         kab_name = "unknown"
 
     # Prepare the output file name
-    output_file = f"summary_komoditas_{komoditas.lower()}_{kab_name.lower()}.xlsx"
+    
+    output_file = os.path.join(output_directory, f"summary_komoditas_{komoditas.lower()}_{kab_name.lower()}.xlsx")
 
     # Create a Pandas Excel writer using openpyxl as the engine
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
@@ -154,5 +172,20 @@ if __name__ == "__main__":
         if not result_kec.empty:
             result_kec.to_excel(writer, sheet_name='Kecamatan', index=False)
             print(f"Saved Kecamatan data to {output_file}")
+            
+        if not result_kec.empty and not summary_kab.empty:
+            for sheet, df in [['Kabupaten', summary_kab], ['Kecamatan', result_kec]]:
+                # Access and worksheet
+                worksheet = writer.sheets[sheet]
+
+                # Set wrap text for all cells and adjust column widths
+                for idx, col in enumerate(df.columns):
+                    column_letter = get_column_letter(idx + 1)
+                    max_length = max(df[col].astype(str).map(len).max(), len(str(col)))
+                    adjusted_width = min(max_length + 2, 50)  # Set a maximum width of 50
+                    worksheet.column_dimensions[column_letter].width = adjusted_width
+
+                    for cell in worksheet[column_letter]:
+                        cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='center')
 
     print(f"Data has been saved to {output_file}")
